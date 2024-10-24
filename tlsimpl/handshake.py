@@ -9,6 +9,7 @@ from typing import Any
 
 from tlsimpl import client, cryptoimpl, util
 from tlsimpl.consts import *
+from tlsimpl.util import pack_varlen
 
 
 def send_client_hello(sock, key_exchange_pubkey: bytes) -> None:
@@ -36,15 +37,23 @@ def send_client_hello(sock, key_exchange_pubkey: bytes) -> None:
     packet.append(b'\x01\x00')
     extension.append(b'\x00\x2b\x00\x03\x02\x03\x04') #supported versions
     extension.append(b'\x00\x0d\x00\x04\x00\x02\x08\x04') #sig algos
-    extension.append(b'\x00\x33\x00\x04\x00\x02\x00\x1d') #key share
-    length = len(key_exchange_pubkey)
-    lengthb = length.to_bytes(2,"big")
+ 
     
-    extension=extension.append(lengthb)
-    extension=+bkey_exchange_pubkey
+    
+    key_exchange_pubkey=pack_varlen(key_exchange_pubkey)
+    key_exchange_pubkey=(b'\x00\x1d')+key_exchange_pubkey
+    key_exchange_pubkey=pack_varlen(key_exchange_pubkey)
+    key_exchange_pubkey=pack_varlen(key_exchange_pubkey)
+    key_exchange_pubkey=(b'\x00\x33')+key_exchange_pubkey
+
+    
+    
+    
+    extension.append(key_exchange_pubkey)
+    
     extension.append(b'\x00\x0a\x00\x04\x00\x02\x00\x1d') #psk key exchange modes
-    
     extension = b''.join(extension)
+    
     length = len(extension)
     lengthb = length.to_bytes(2,"big")
     packet.append(lengthb)
@@ -66,7 +75,7 @@ def send_client_hello(sock, key_exchange_pubkey: bytes) -> None:
     packet=b'\x03'+packet
     packet=b'\x16'+packet
     
-    print(packet)
+    #print(packet)
     sock.inner.sendall(packet)
 
 

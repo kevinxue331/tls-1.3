@@ -19,9 +19,56 @@ def send_client_hello(sock, key_exchange_pubkey: bytes) -> None:
 
     Specified in RFC8446 section 4.1.2.
     """
+    # Generate a random 32-byte client random value
+    client_random = secrets.token_bytes(32)
+
     packet = []
+    extension =[]
     # TODO: construct the packet data
-    sock.send_handshake_record(HandshakeType.CLIENT_HELLO, b"".join(packet))
+    
+    packet.append(b'\x03\x03')
+    packet.append(client_random)
+    #packet.append(b'\x20')
+    packet.append(b'\x01\x00')
+    packet.append(b'\x00\x02')
+    packet.append(b'\x13\x02')
+    
+    packet.append(b'\x01\x00')
+    extension.append(b'\x00\x2b\x00\x03\x02\x03\x04') #supported versions
+    extension.append(b'\x00\x0d\x00\x04\x00\x02\x08\x04') #sig algos
+    extension.append(b'\x00\x33\x00\x04\x00\x02\x00\x1d') #key share
+    length = len(key_exchange_pubkey)
+    lengthb = length.to_bytes(2,"big")
+    
+    extension=extension.append(lengthb)
+    extension=+bkey_exchange_pubkey
+    extension.append(b'\x00\x0a\x00\x04\x00\x02\x00\x1d') #psk key exchange modes
+    
+    extension = b''.join(extension)
+    length = len(extension)
+    lengthb = length.to_bytes(2,"big")
+    packet.append(lengthb)
+    packet=packet+[extension]
+    
+    packet=b''.join(packet)
+    
+    length = len(packet)
+    lengthb = length.to_bytes(3,"big")
+    packet = lengthb+packet
+    a=b'\x01'
+    packet = a+packet
+#print(packet)
+    
+    length = len(packet)
+    lengthb = length.to_bytes(2,"big")
+    packet=lengthb+packet
+    packet=b'\x01'+packet
+    packet=b'\x03'+packet
+    packet=b'\x16'+packet
+    
+    print(packet)
+    sock.inner.sendall(packet)
+
 
 
 def recv_server_hello(sock: client.TLSSocket) -> Any:
